@@ -4,71 +4,105 @@ This repo demonstrates **Terraform Actions** as **Day-2 operations**:
 
 - Create an **on-demand backup** of a DynamoDB table
 - **Publish a message** to an SNS topic
-- **Write an operational log line to CloudWatch Logs** by invoking a small logger Lambda
+- **Write an operational log line to CloudWatch Logs** by invoking a small Lambda (via Terraform Action)
 
-It also includes an optional **lifecycle-triggered workflow**: when you bump `release_version`,
-Terraform will automatically run all three actions (backup + notify + log).
+It also supports an optional **lifecycle-triggered workflow**: when you bump `release_version`,
+Terraform can automatically run all three actions (backup + notify + log).
+
+---
 
 ## Prerequisites
+
 - Terraform **>= 1.14.0**
-- AWS credentials configured locally
+- AWS credentials configured locally (AWS_PROFILE, env vars, SSO, etc.)
 - Permissions to create/manage:
   - DynamoDB table + backups
   - SNS topic (+ optional subscription)
   - SSM Parameter
   - Lambda + CloudWatch Logs
 
+
+---
+
 ## Quick start
 
-### 1) Init + apply
+### 1) Init + apply (provision infra)
 ```bash
 terraform init
 terraform apply
 ```
 
-### 2) (Optional) Subscribe an email to SNS
-Confirm the subscription from your inbox.
+---
+
+## Optional: Subscribe an email to SNS
+
+SNS email subscription requires confirmation from your inbox.
+
 ```bash
 terraform apply -var='email=you@example.com'
 ```
 
-### 3) Run the automated release workflow (recommended “wow” moment)
+---
+
+## Run the automated release workflow
+
+### 2) Enable the workflow (if your default is `false`)
+If `enable_release_workflow` is already `true` in `variables.tf`, you can skip this step.
+
+```bash
+terraform apply -var='enable_release_workflow=true'
+```
+
+### 3) Run the automated release workflow
+> This will run the Actions **only if** `enable_release_workflow` is `true` (default or provided on CLI).
+
 ```bash
 terraform apply -var='release_version=v2'
 ```
 
-**Proof:**
-- DynamoDB console → table → Backups tab (new on-demand backup)
-- SNS: email (if confirmed) or console metrics
-- CloudWatch Logs: log group `/aws/lambda/<project>-ops-logger` contains a log line
+---
 
-### 4) Watch CloudWatch logs from CLI
+## Day-2 Runbook: Manual invokes
+
+### Create a DynamoDB on-demand backup (with release version)
 ```bash
-LOG_GROUP=$(terraform output -raw logger_log_group)
-aws logs tail "$LOG_GROUP" --since 10m --follow
+terraform apply \
+  -var='release_version=v2' \
+  -invoke='action.aws_dynamodb_create_backup.on_demand'
 ```
 
-### 5) Manual Day-2 runbook actions (on demand)
-
-Create a backup:
+### Publish an SNS notification (with release version)
 ```bash
-terraform apply -invoke='action.aws_dynamodb_create_backup.on_demand'
+terraform apply \
+  -var='release_version=v2' \
+  -invoke='action.aws_sns_publish.notify_release'
 ```
 
-Publish a message:
+### Write an audit log line to CloudWatch Logs (with release version)
 ```bash
-terraform apply -invoke='action.aws_sns_publish.notify_manual' -var='message=Backup completed. Ready for change.'
+terraform apply \
+  -var='release_version=v2' \
+  -invoke='action.aws_lambda_invoke.write_log'
 ```
 
-Write a CloudWatch log line:
-```bash
-terraform apply -invoke='action.aws_lambda_invoke.write_log'
-```
+---
 
-### 6) Disable automatic triggers (optional)
-```bash
-terraform apply -var='enable_release_workflow=false'
-```
+## Proof / Verification
+
+### DynamoDB backup
+AWS Console → DynamoDB → your table → **Backups** tab  
+You should see an on-demand backup named like:
+`<project>-v2-<timestamp>`
+
+### SNS publish
+- If email subscription is configured and confirmed: check your inbox
+- Otherwise: SNS console metrics / CloudWatch metrics for the topic
+
+### CloudWatch Logs (recommended proof)
+
+(Adjust if your Lambda function name differs. The log group is typically `/aws/lambda/<lambda_function_name>`.)
+
+---
 
 ## Cleanup
 ```bash
