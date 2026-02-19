@@ -33,16 +33,6 @@ resource "aws_sns_topic_subscription" "email" {
   endpoint  = var.email
 }
 
-resource "aws_cloudwatch_log_group" "logger" {
-  name              = "/aws/lambda/${var.project}-loggroup"
-  retention_in_days = var.log_retention_days
-
-  tags = {
-    Project = var.project
-    Demo    = "TerraformActions"
-  }
-}
-
 data "archive_file" "logger_zip" {
   type        = "zip"
   source_dir  = "${path.module}/lambda_logger"
@@ -81,7 +71,7 @@ resource "aws_lambda_function" "ops_logger" {
       PROJECT = var.project
     }
   }
-  depends_on = [aws_cloudwatch_log_group.logger]
+#  depends_on = [aws_cloudwatch_log_group.logger]
 }
 
 # Update release_version to trigger Actions automatically.
