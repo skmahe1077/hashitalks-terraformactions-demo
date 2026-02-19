@@ -64,25 +64,15 @@ terraform apply -var='release_version=v2'
 
 ## Day-2 Runbook: Manual invokes
 
-### Create a DynamoDB on-demand backup (with release version)
+
+### Publish an SNS notification
 ```bash
-terraform apply \
-  -var='release_version=v2' \
-  -invoke='action.aws_dynamodb_create_backup.on_demand'
+terraform apply -invoke='action.aws_sns_publish.notify_manual' -var='message=Backup completed. Ready for change.'
 ```
 
-### Publish an SNS notification (with release version)
+### Publish an SNS Notification (without Message)
 ```bash
-terraform apply \
-  -var='release_version=v2' \
-  -invoke='action.aws_sns_publish.notify_release'
-```
-
-### Write an audit log line to CloudWatch Logs (with release version)
-```bash
-terraform apply \
-  -var='release_version=v2' \
-  -invoke='action.aws_lambda_invoke.write_log'
+terraform apply -invoke='action.aws_sns_publish.notify_manual'
 ```
 
 ---
