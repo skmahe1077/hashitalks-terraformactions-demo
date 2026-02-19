@@ -31,7 +31,6 @@ variable "message" {
   default = "Hello from Terraform Actions"
 }
 
-# Retention for CloudWatch logs (days)
 variable "log_retention_days" {
   type    = number
   default = 7

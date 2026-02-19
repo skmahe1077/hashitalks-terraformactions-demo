@@ -32,3 +32,11 @@ action "aws_lambda_invoke" "write_log" {
     })
   }
 }
+# Manual Action: a separate manual publish action using var.message
+action "aws_sns_publish" "notify_manual" {
+  config {
+    topic_arn = aws_sns_topic.demo.arn
+    subject   = "Terraform Actions: manual publish"
+    message   = var.message
+  }
+}

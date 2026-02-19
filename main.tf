@@ -71,7 +71,6 @@ resource "aws_lambda_function" "ops_logger" {
       PROJECT = var.project
     }
   }
-#  depends_on = [aws_cloudwatch_log_group.logger]
 }
 
 # Update release_version to trigger Actions automatically.
